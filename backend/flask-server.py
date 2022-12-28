@@ -14,7 +14,8 @@ import looop
 # 環境変数の読み込み。存在しない場合はValidationErrorを出して終了する
 class Env(BaseSettings):
     DATA_DIR: str
-
+    class Config:
+        env_file = '.env'
 
 env = Env()
 
