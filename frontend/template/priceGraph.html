@@ -1,0 +1,171 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>{{ title }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0/dist/Chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <p>{{ title }}</p>
+    <div id="app">
+      <fieldset>
+        <legend>エリア</legend>
+        <span v-for="area in areas" v-bind:key="area">
+          <input
+            type="radio"
+            v-bind:id="'area-' + area"
+            v-bind:value="area"
+            v-model="selectedArea"
+            v-on:change="updateGraph"
+          />
+          <label v-bind:for="'area-' + area">[[ area ]]</label>
+        </span>
+      </fieldset>
+
+      <fieldset>
+        <legend>上限値</legend>
+        <span v-for="upper in [50, 100, 150, 200, 250]" v-bind:key="upper">
+          <input
+            type="radio"
+            v-bind:id="'upper-' + upper"
+            v-bind:value="upper"
+            v-model="selectedUpper"
+            v-on:change="displayGraph"
+          />
+          <label v-bind:for="'upper-' + upper">[[ upper ]]</label>
+        </span>
+      </fieldset>
+
+      <button type="button" id="yesterday" v-on:click="onYesterdayClick">
+        前日
+      </button>
+      <input type="date" v-model="selectedDateStr" v-on:change="onDateChange" />
+      <button type="button" id="tomorrow" v-on:click="onTomorrowClick">
+        翌日
+      </button>
+
+      <div>
+        <canvas id="mychart"></canvas>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    const companyKey = {{ companyKey | tojson }};  // ここでflaskが渡した値をjsの変数として再定義
+    console.log(companyKey);
+    var app = new Vue({
+      el: "#app",
+      delimiters: ["[[", "]]"], // 区切り文字が{2つだとFlaskのテンプレートとごちゃつくので、[2つにする
+      data: {
+        areas: [],
+        selectedArea: "東京",
+        selectedUpper: 100,
+        selectedDateStr: "",
+        chartData: {},  // Chartに渡すデータ
+        myChart: null,  // Chartオブジェクトのいれもの
+      },
+      methods: {
+        datestrToDate: function (datestr) {
+          // '2022-10-01'からDate型へ
+          return new Date(datestr);
+        },
+        dateToDatestr: function (date) {
+          // Date型から'2022-10-01'形式へ
+          const yyyy = date.getFullYear();
+          const mm = ("0" + (date.getMonth() + 1)).slice(-2);
+          const dd = ("0" + date.getDate()).slice(-2);
+          return yyyy + "-" + mm + "-" + dd;
+        },
+        onYesterdayClick: function () {
+          let selectedDate = this.datestrToDate(this.selectedDateStr);
+          selectedDate.setDate(selectedDate.getDate() - 1);
+          this.selectedDateStr = this.dateToDatestr(selectedDate);
+          this.updateGraph();
+        },
+        onTomorrowClick: function () {
+          let selectedDate = this.datestrToDate(this.selectedDateStr);
+          selectedDate.setDate(selectedDate.getDate() + 1);
+          this.selectedDateStr = this.dateToDatestr(selectedDate);
+          this.updateGraph();
+        },
+        onDateChange: function () {
+          this.updateGraph();
+        },
+        updateGraph: function () {
+          const selectedDate = this.datestrToDate(this.selectedDateStr);
+          axios
+            .get(
+              "/api/price/" + companyKey + '/' +
+                selectedDate.getFullYear() +
+                "/" +
+                (selectedDate.getMonth() + 1) +
+                "/" +
+                selectedDate.getDate()
+            )
+            .then((response) => {
+              if (!response.data) {
+                this.chartData = {};
+              } else {
+                // 受け取ったデータに含まれるdatasetから、選択されている1つのエリア以外のデータを削除する
+                while (response.data.datasets.length > 1) {
+                  // datasetが2つ以上残っている場合
+                  if (
+                    response.data.datasets[0]["label"] !== this.selectedArea
+                  ) {
+                    // 配列前方に無駄なものがある→削除
+                    response.data.datasets.shift();
+                  } else {
+                    // 配列後方に無駄なものがある→削除
+                    response.data.datasets.pop();
+                  }
+                }
+                this.chartData = response.data;
+              }
+              this.displayGraph();
+            }).catch((error) => {
+              this.chartData = {};
+              this.displayGraph();
+            });
+        },
+        displayGraph: function () {
+          if (this.myChart) {
+            this.myChart.destroy();
+          }
+          var ctx = document.getElementById("mychart");
+          this.myChart = new Chart(ctx, {
+            type: "line",
+            data: this.chartData, // apiで取得したデータ
+            options: {
+              scales: {
+                yAxes: [
+                  {
+                    ticks: {
+                      display: true,
+                      min: 0,
+                      max: this.selectedUpper, // 上限値を指定された値にする
+                      beginAtZero: true,
+                    },
+                  },
+                ],
+              },
+              spanGaps: true,
+            },
+          });
+        },
+      },
+      mounted: function () {
+        this.selectedDateStr = this.datestrToDate(new Date()); // きょうの日付を代入
+        axios.get("/api/price/" + companyKey + '/areas')  // エリアの選択肢一覧を取得
+          .then((response) => {
+            this.areas = response.data;
+          })
+          .catch((error) => {
+          });
+      },
+    });
+  </script>
+
+  <!-- Add "scoped" attribute to limit CSS to this component only -->
+  <style scoped></style>
+</html>
