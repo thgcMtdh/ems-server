@@ -29,10 +29,11 @@ def fetchSpot(dataDir: str, fiscalYear: int = 0) -> None:
     file = open(dataDir + "/spot_" + str(fiscalYear) + ".csv", "wb")
 
     # JEPXのダウンロードリンクを生成
-    jepx_spot_url = "http://www.jepx.org/market/excel/spot_" + str(fiscalYear) + ".csv"
+    jepx_header = {'referer': 'https://www.jepx.jp/electricpower/market-data/spot/'}
+    jepx_spot_url = "https://www.jepx.jp/js/csv_read.php?dir=spot_summary&file=spot_summary_" + str(fiscalYear) + ".csv"
 
     # 取得
-    response = requests.get(jepx_spot_url)
+    response = requests.get(jepx_spot_url, headers=jepx_header)
 
     # 取得成功時
     if response.status_code == 200:
