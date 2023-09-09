@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pulp
 
 
@@ -106,7 +108,8 @@ def lpSolve(
     )
 
     # 解く
-    status = problem.solve(pulp.PULP_CBC_CMD(msg=False))
+    # status = problem.solve(pulp.PULP_CBC_CMD(msg=False))
+    status = problem.solve(pulp.GLPK_CMD(msg=False))
     print(pulp.LpStatus[status], problem.objective.value())
 
     # ACDCとINVの電力とSOCを返す
