@@ -13,7 +13,7 @@ class Constants(BaseModel):
     transmissionFee: float = 9.78  # 託送料金[円/kWh]
     serviceFee: float = 5.5  # サービス料[円/kWh]
     surchargeFee: float = 1.40  # 再エネ賦課金[円/kWh]
-    discountFee: float = 7.0  # 割引額(割引時に正)[円/kWh]
+    discountFee: float = 3.5  # 割引額(割引時に正)[円/kWh]
 
 
 def calcPrice(areaPrice: float, constants: Constants = Constants()) -> float:
