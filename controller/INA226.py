@@ -108,11 +108,20 @@ class INA226:
         self.__i2c.write_i2c_block_data(
             self.__addr, reg_addr, [high_byte, low_byte]
         )
-    
+
+    def __convert_two_complement_to_decimal(self, val: int, bit_len: int) -> int:
+        val &= ((1 << bit_len) - 1)     # mask bit_len digit
+        msb = val >> (bit_len - 1)      # extract most significant bit (sign bit)
+        if msb == 1:                    # if msb == 1, it is negative value
+            abs = (1 << bit_len) - val  # get absolute value
+            return -abs                 # add minus sign
+        else:
+            return val
     # core functions
     
     def get_shunt_voltage_mV(self) -> float:
         val = self.__read_16bit(self.SHUNT_VOLTAGE_REG)
+        val = self.__convert_two_complement_to_decimal(val, 16)
         return val * 2.5e-3
         
     def get_bus_voltage_V(self) -> float:
@@ -121,10 +130,12 @@ class INA226:
     
     def get_power_W(self) -> float:
         val = self.__read_16bit(self.POWER_REG)
+        val = self.__convert_two_complement_to_decimal(val, 16)
         return val * 25 * self.__current_lsb_A
     
     def get_current_A(self) -> float:
         val = self.__read_16bit(self.CURRENT_REG)
+        val = self.__convert_two_complement_to_decimal(val, 16)
         return val * self.__current_lsb_A
     
     # configuration
@@ -177,6 +188,16 @@ class INA226:
     # calibration
 
     def set_calibration(self, current_lsb_A: float, shunt_ohm: float) -> int:
+        """
+        Set calibration register value
+
+        Parameters
+        ----------
+        current_lsb_A: 
+            Calculate this value by (max expected current [A]) / 2^15
+        shunt_ohm:
+            Resistance of the shunt register [Ohm]
+        """
         if current_lsb_A <= 0.0 or shunt_ohm <= 0.0:  # avoid zero division
             return 0
         
