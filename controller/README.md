@@ -1,22 +1,29 @@
+## セットアップ
 
+### ループタスクの自動起動
 
-## .env ファイル
+loopTask.py の中で、充放電指令とログの取得を行っている。
+loopTask.py がシステム起動時に自動実行されるように systemd を編集する。
 
-controller 直下に `.env` ファイルを以下のように作成。
+やり方例：https://www.pc-koubou.jp/magazine/52061
+
+### .env ファイル
+
+controller 直下に以下のような `.env` ファイルを作成する。
 
 ```
 DATA_DIR=C:/Users/xxxx/Documents/ems-server-data  # 各種データの保存先
 ```
 
-## データフォルダのディレクトリ構造
+### データ保存先のディレクトリ構造の作成
 
-DATA_DIR で指定したディレクトリに、以下のようなディレクトリ構造を作ってファイルを入れる
+`DATA_DIR` で指定したディレクトリに、以下のようなディレクトリ構造を作って、default.csv を格納する
 
 - chargePlan/  : 充放電計画が保存されるフォルダ
   - default.csv
 - demandPlan/  : 需要計画が保存されるフォルダ
   - default.csv
-- spot_2023.csv  : JEPX 価格はルートに保存される
+- measureLog/ : 計測値が保存されるフォルダ
 
 chargePlan の default.csv
 

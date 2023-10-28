@@ -47,9 +47,12 @@ acDemandList = demandDataDict["acDemand"]
 chargePlanFile = PlanFile(env.DATA_DIR + "/chargePlan/")
 initSoc = chargePlanFile.extract(now, beginIndex, 1)["soc"][0] / 1000
 
+# 最終SOC。さしあたり決め打ち
+lastSoc = 0.75
+
 # 最適化計算
 acdcCommand, invCommand, socPermill = optimization.do(
-    initSoc, looopPriceList, dcDemandList, acDemandList
+    initSoc, lastSoc, looopPriceList, dcDemandList, acDemandList
 )
 data = {"acdc": acdcCommand, "inv": invCommand, "soc": socPermill}
 

@@ -5,6 +5,7 @@ import pulp
 
 def lpSolve(
     initSoc: float,
+    lastSoc: float,
     priceList: list[float],
     dcDemandList: list[float],
     acDemandList: list[float],
@@ -15,7 +16,9 @@ def lpSolve(
     Parameters
     ----------
     initSoc: float
-        初期・終期SOC (0～1)
+        初期SOC (0～1)
+    lastSoc: float
+        終期SOC (0～1)
     priceList: list[float]
         計算したいコマの電力価格[円/kWh]
     dcDemandList: list[float]
@@ -33,7 +36,7 @@ def lpSolve(
     BATT_CAPACITY_WH = 12 * 100
     MAX_SOCRATE = 1.00
     MIN_SOCRATE = 0.50
-    ACDC_PWR_W = 150
+    ACDC_PWR_W = 13 * 7.2
     EFF_ACDC = 0.80
     EFF_INV = 0.85
 
@@ -104,7 +107,7 @@ def lpSolve(
     # 23:30のSOC[Wh] + 23:30～24:00の間に充電する電力[Wh] = 24:00のSOC[kWh] が初期SOCと一致
     lastIndex = index[-1]
     problem += (
-        SOCbat_Wh[lastIndex] + Pbat_W[lastIndex] * 30 / 60 == initSoc * BATT_CAPACITY_WH
+        SOCbat_Wh[lastIndex] + Pbat_W[lastIndex] * 30 / 60 == lastSoc * BATT_CAPACITY_WH
     )
 
     # 解く
@@ -154,13 +157,14 @@ def modifyConsecutivePrice(price: list[float]) -> list[float]:
 
 def do(
     initSoc: float,
+    lastSoc: float,
     priceList: list[float],
     dcDemandList: list[float],
     acDemandList: list[float],
 ) -> tuple[list[int]]:
     modifiedPriceList = modifyConsecutivePrice(priceList)
     acdcPowerList, invPowerList, socList = lpSolve(
-        initSoc, modifiedPriceList, dcDemandList, acDemandList
+        initSoc, lastSoc, modifiedPriceList, dcDemandList, acDemandList
     )
     return (
         convertToBinary(acdcPowerList),
